@@ -1,5 +1,5 @@
 import { useAudioEngine } from "../hooks/useAudioEngine";
-import { AudioContext } from "./AudioContextDefinition"; // Importamos del nuevo archivo
+import { AudioContext } from "./AudioContextDefinition";
 
 export const AudioProvider = ({ children }) => {
   const audioInterface = useAudioEngine();

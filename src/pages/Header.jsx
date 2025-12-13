@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { NeumorphicButton } from "../components/UIBasicComponents";
+import { usePlayerStore } from "../store/usePlayerStore";
+import { extractMetadata } from "../utils/metadata";
 
 const UniversalHeader = ({ title, onBackClick }) => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const fileInputRef = useRef(null);
+  const addToQueue = usePlayerStore((state) => state.addToQueue);
 
   // Estado para el Modo Oscuro
   const [darkMode, setDarkMode] = useState(() =>
@@ -22,6 +26,23 @@ const UniversalHeader = ({ title, onBackClick }) => {
 
   const handleBack = onBackClick ? onBackClick : () => navigate(-1);
 
+  const handleAddFiles = async (event) => {
+    const files = Array.from(event.target.files);
+
+    for (const file of files) {
+      if (!file.type.startsWith("audio/")) continue;
+
+      const metadata = await extractMetadata(file);
+      addToQueue(metadata);
+    }
+
+    // Reset input
+    event.target.value = "";
+    setMenuOpen(false);
+
+    console.log(`✅ Added ${files.length} songs to queue`);
+  };
+
   return (
     <div className="relative flex items-center p-4 pb-2 justify-between shrink-0 z-50">
       {/* BOTÓN ATRÁS */}
@@ -35,6 +56,16 @@ const UniversalHeader = ({ title, onBackClick }) => {
       <h2 className="text-on-surface-light dark:text-on-surface-dark text-xl font-bold truncate text-center flex-1">
         {title}
       </h2>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="audio/*"
+        multiple
+        className="hidden"
+        onChange={handleAddFiles}
+      />
 
       {/* MENÚ DE OPCIONES */}
       <div className="flex w-12 items-center justify-end relative">
@@ -51,8 +82,22 @@ const UniversalHeader = ({ title, onBackClick }) => {
               className="fixed inset-0 z-10"
               onClick={() => setMenuOpen(false)}
             ></div>
-            <div className="absolute top-14 right-0 w-60 bg-surface-light dark:bg-surface-dark rounded-lg shadow-neumorphic-light dark:shadow-neumorphic-dark p-4 z-20">
-              <div className="flex items-center justify-between">
+            <div className="absolute top-14 right-0 w-60 bg-surface-light dark:bg-surface-dark rounded-lg shadow-neumorphic-light dark:shadow-neumorphic-dark p-4 z-20 space-y-3">
+              {/* Añadir canciones */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <span className="material-symbols-outlined text-primary">
+                  add_circle
+                </span>
+                <span className="font-medium text-on-surface-light dark:text-on-surface-dark text-sm">
+                  Añadir a la cola
+                </span>
+              </button>
+
+              {/* Modo Oscuro */}
+              <div className="flex items-center justify-between pt-2 border-t border-neutral-200 dark:border-neutral-700">
                 <span className="font-semibold text-on-surface-light dark:text-on-surface-dark text-sm">
                   Modo Oscuro
                 </span>

@@ -33,6 +33,14 @@ const SearchPage = () => {
       }
 
       if (songs.length > 0) {
+        console.log("✅ Queue updated with", songs.length, "tracks");
+        console.log(
+          "📋 First track:",
+          songs[0].title,
+          "Has file:",
+          !!songs[0].file
+        );
+
         // Set as new queue (los archivos quedan en RAM)
         setQueue(songs);
         // Navigate to list view

@@ -6,6 +6,9 @@ const EqualizerView = () => {
   // 2. Sacamos las funciones de control del motor de audio
   const { setEqBand, toggleCompressor, toggle3D } = useAudio();
 
+  // Estado para el EQ bypass
+  const [eqActive, setEqActive] = useState(true);
+
   // Estado local solo para la UI del Crossfade (que ya tenías)
   const [crossfadeActive, setCrossfadeActive] = useState(false);
   const [crossfadeValue, setCrossfadeValue] = useState(5);
@@ -16,12 +19,28 @@ const EqualizerView = () => {
     setEqBand(band, parseFloat(value));
   };
 
+  // Handler para el toggle master del EQ
+  const handleEqToggle = (isActive) => {
+    setEqActive(isActive);
+
+    if (isActive) {
+      // Restaurar valores por defecto
+      setEqBand("low", 3);
+      setEqBand("mid", -2);
+      setEqBand("high", 5);
+    } else {
+      // Bypass: Poner todas las bandas a 0 (flat response)
+      setEqBand("low", 0);
+      setEqBand("mid", 0);
+      setEqBand("high", 0);
+    }
+  };
+
   return (
     <div className="w-full bg-surface-light dark:bg-surface-dark rounded-xl flex-1 flex flex-col p-3 text-on-surface-light dark:text-on-surface-dark">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-bold text-lg">Ecualizador</h3>
-        {/* Este switch global podría ser un bypass general en el futuro */}
-        <ToggleSwitch initialValue={true} />
+        <ToggleSwitch initialValue={eqActive} onToggle={handleEqToggle} />
       </div>
 
       <div className="flex-grow space-y-4">

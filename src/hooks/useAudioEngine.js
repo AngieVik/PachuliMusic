@@ -125,30 +125,39 @@ export const useAudioEngine = () => {
 
   // 3. Cargar Canción - RAM-based (sin IndexedDB)
   const loadTrack = useCallback(async (track) => {
-    if (!player.current) return;
+    console.log('🎵 loadTrack called with:', track?.title);
+    
+    if (!player.current) {
+      console.error('❌ Player not initialized');
+      return;
+    }
     
     // Detener anterior
     if (player.current.state === 'started') {
+        console.log('⏹️ Stopping previous track');
         player.current.stop();
     }
     
     await Tone.start(); 
+    console.log('✅ Tone.start() completed');
 
     // FIX: Usar el archivo directamente desde RAM (track.file)
     let url;
     if (track.file) {
-        // El track viene con el File object en memoria
         url = URL.createObjectURL(track.file);
+        console.log('📁 Created ObjectURL from file');
     } else if (track.url) {
-        // Fallback para streams o URLs externas
         url = track.url;
+        console.log('🌐 Using external URL');
     } else {
-        console.error('No file or URL available for track:', track);
+        console.error('❌ No file or URL available for track:', track);
         return;
     }
 
     if (url) {
+        console.log('⏳ Loading audio buffer...');
         await player.current.load(url);
+        console.log('✅ Audio buffer loaded');
         
         const dur = player.current.buffer.duration;
         setDuration(dur);
@@ -158,8 +167,22 @@ export const useAudioEngine = () => {
         startTimeRef.current = Tone.now();
         player.current.start();
         setIsPlaying(true);
+        console.log('▶️ Playback started, duration:', dur.toFixed(2), 's');
     }
   }, [setIsPlaying]);
+
+  // AUTO-LOAD: Observar cambios en cola y cargar automáticamente
+  const { queue, currentTrackIndex } = usePlayerStore();
+  
+  useEffect(() => {
+    const currentTrack = queue[currentTrackIndex];
+    
+    if (currentTrack && isReady && player.current) {
+      console.log('🔄 Track changed, auto-loading:', currentTrack.title);
+      loadTrack(currentTrack);
+    }
+  }, [currentTrackIndex, isReady, loadTrack]);
+  // Nota: NO incluimos 'queue' en deps para evitar re-loads innecesarios
 
   // Controles
   const togglePlayback = () => {
