@@ -5,7 +5,6 @@ import BottomNavBar from "./BottomNavBar";
 import { SearchBar } from "../components/UIBasicComponents";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { extractMetadata } from "../utils/metadata";
-import { saveAudioFile } from "../utils/db";
 
 const SearchPage = () => {
   const fileInputRef = useRef(null);
@@ -25,16 +24,16 @@ const SearchPage = () => {
         // Only process audio files
         if (!file.type.startsWith("audio/")) continue;
 
+        // Extract metadata (ya incluye el archivo en metadata.file)
         const metadata = await extractMetadata(file);
 
-        // Save file to IndexedDB
-        await saveAudioFile(metadata.id, file);
-
+        // RAM-based: El File object se mantiene en memoria en el objeto song
+        // No guardamos en IndexedDB, solo mantenemos el File en RAM
         songs.push(metadata);
       }
 
       if (songs.length > 0) {
-        // Set as new queue and start playing
+        // Set as new queue (los archivos quedan en RAM)
         setQueue(songs);
         // Navigate to list view
         navigate("/player/list");

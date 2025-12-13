@@ -1,20 +1,15 @@
-import { get, set, del } from 'idb-keyval';
+// src/utils/db.js
+// VERSIÓN NEUTRALIZADA (Safe Mode) - Linter Clean
 
-// Guardar archivo de audio
-export const saveAudioFile = async (id, file) => {
-  try {
-    await set(`audio_${id}`, file);
-  } catch (err) {
-    console.error("Error guardando audio:", err);
-  }
+export const saveAudioFile = async () => {
+  // No-op
+  return; 
 };
 
-// Recuperar archivo de audio
-export const getAudioFile = async (id) => {
-  return await get(`audio_${id}`);
+export const getAudioFile = async () => {
+  return null;
 };
 
-// Borrar archivo
-export const deleteAudioFile = async (id) => {
-  await del(`audio_${id}`);
+export const deleteAudioFile = async () => {
+  return;
 };

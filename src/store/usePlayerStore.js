@@ -1,15 +1,41 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { deleteAudioFile } from '../utils/db';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+// --- SAFE STORAGE WRAPPER ---
+// Intercepta errores si el navegador bloquea el almacenamiento (Cookies/LocalStorage)
+const safeLocalStorage = {
+  getItem: (name) => {
+    try {
+      return localStorage.getItem(name);
+    } catch {
+      console.warn("LocalStorage access denied (Read). Running in volatile mode.");
+      return null;
+    }
+  },
+  setItem: (name, value) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch {
+      console.warn("LocalStorage access denied (Write). Settings won't persist.");
+    }
+  },
+  removeItem: (name) => {
+    try {
+      localStorage.removeItem(name);
+    } catch {
+      // Ignoramos error
+    }
+  },
+};
 
 export const usePlayerStore = create(
   persist(
     (set, get) => ({
       // --- Estado Inicial ---
-      playlists: [], // { id, name: string, songs: [] }
-      favorites: [], // Array de IDs de canciones
-      recentSearches: [], // { id, title, subtitle, img, rounded, type, timestamp }
-      queue: [], // Lista de reproducción actual
+      playlists: [],
+      favorites: [],
+      recentSearches: [],
+      queue: [],
       currentTrackIndex: -1,
       isPlaying: false,
       volume: 1,
@@ -40,7 +66,6 @@ export const usePlayerStore = create(
       
       setIsPlaying: (val) => set({ isPlaying: val }),
 
-      // Favoritos
       toggleFavorite: (songId) => set((state) => {
         const isFav = state.favorites.includes(songId);
         return {
@@ -50,12 +75,10 @@ export const usePlayerStore = create(
         };
       }),
 
-      // Crear Playlist
       createPlaylist: (name) => set((state) => ({
         playlists: [...state.playlists, { id: Date.now(), name, songs: [] }]
       })),
 
-      // Agregar canción a Playlist
       addToPlaylist: (playlistId, song) => set((state) => ({
         playlists: state.playlists.map(pl => 
           pl.id === playlistId 
@@ -64,29 +87,19 @@ export const usePlayerStore = create(
         )
       })),
 
-      // Borrar canción (limpieza completa)
-      removeFromQueue: async (index) => {
+      removeFromQueue: (index) => {
         const state = get();
-        const songToRemove = state.queue[index];
-        
-        // Si es archivo local, borrar de IndexedDB para no ocupar espacio
-        if (songToRemove.isLocal) {
-            await deleteAudioFile(songToRemove.id);
-        }
-
+        // Nota: Ya no borramos de disco, solo de la lista visual
         const newQueue = [...state.queue];
         newQueue.splice(index, 1);
         
-        // Ajustar índice si es necesario
         let newIndex = state.currentTrackIndex;
         if (index < newIndex) newIndex--;
         
         set({ queue: newQueue, currentTrackIndex: newIndex });
       },
 
-      // Recent Searches
       addRecentSearch: (searchItem) => set((state) => {
-        // Evitar duplicados recientes
         const filtered = state.recentSearches.filter(
           item => item.title !== searchItem.title || item.type !== searchItem.type
         );
@@ -94,7 +107,7 @@ export const usePlayerStore = create(
           recentSearches: [
             { ...searchItem, id: Date.now(), timestamp: Date.now() },
             ...filtered
-          ].slice(0, 20) // Limitar a 20 búsquedas recientes
+          ].slice(0, 20)
         };
       }),
 
@@ -104,23 +117,19 @@ export const usePlayerStore = create(
 
       clearRecentSearches: () => set({ recentSearches: [] }),
 
-      // Borrar Playlist
       deletePlaylist: (playlistId) => set((state) => ({
         playlists: state.playlists.filter(pl => pl.id !== playlistId)
       })),
 
-      // Helper: Obtener canciones favoritas con detalles
       getFavoriteSongs: () => {
         const state = get();
         return state.queue.filter(song => state.favorites.includes(song.id));
       },
 
-      // Helper: Obtener álbumes agrupados por artista
       getAlbumsByArtist: () => {
         const state = get();
         const albumsMap = new Map();
         
-        // Recorrer todas las playlists y sus canciones
         state.playlists.forEach(playlist => {
           playlist.songs.forEach(song => {
             const key = `${song.artist}-${song.album}`;
@@ -140,7 +149,8 @@ export const usePlayerStore = create(
       }
     }),
     {
-      name: 'music-player-storage', // Nombre para localStorage (persistencia de metadatos)
+      name: 'music-player-storage',
+      storage: createJSONStorage(() => safeLocalStorage),
       partialize: (state) => ({ 
         playlists: state.playlists, 
         favorites: state.favorites,

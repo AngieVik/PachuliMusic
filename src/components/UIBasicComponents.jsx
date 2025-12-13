@@ -15,8 +15,17 @@ export const NeumorphicButton = ({
   </button>
 );
 
-export const ToggleSwitch = ({ label, initialValue }) => {
+// Busca la función ToggleSwitch y déjala así:
+export const ToggleSwitch = ({ label, initialValue, onToggle }) => {
+  // <--- Agregamos onToggle
   const [on, setOn] = useState(initialValue);
+
+  const handleClick = () => {
+    const newState = !on;
+    setOn(newState);
+    if (onToggle) onToggle(newState); // <--- Si nos pasan una función, la avisamos
+  };
+
   return (
     <div className="flex justify-between items-center">
       {label && (
@@ -25,7 +34,7 @@ export const ToggleSwitch = ({ label, initialValue }) => {
         </label>
       )}
       <div
-        onClick={() => setOn(!on)}
+        onClick={handleClick} // <--- Usamos nuestra nueva función
         className={`w-10 h-5 rounded-full cursor-pointer relative transition-colors ${
           on ? "bg-primary" : "bg-gray-200 dark:bg-gray-700"
         }`}

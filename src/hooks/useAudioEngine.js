@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Tone from 'tone';
 import { usePlayerStore } from '../store/usePlayerStore';
-import { getAudioFile } from '../utils/db';
 
 export const useAudioEngine = () => {
   // Referencias a nodos de audio
@@ -14,29 +13,36 @@ export const useAudioEngine = () => {
 
   const [isReady, setIsReady] = useState(false);
   const [duration, setDuration] = useState(0); 
-  const [currentTime, setCurrentTime] = useState(0); // Nuevo estado para UI
+  const [currentTime, setCurrentTime] = useState(0);
   
-  // Extraemos VOLUME e isPlaying para usarlos y devolverlos
   const { isPlaying, setIsPlaying, volume } = usePlayerStore();
 
   // 1. Inicializar Grafo - Hardened for Strict Mode
   useEffect(() => {
-    // Flag para evitar doble inicialización en Strict Mode
     let isMounted = true;
 
     const initAudio = async () => {
-      // Si ya existe una instancia (por hot reload o strict mode), limpiarla antes
       if (player.current) return;
 
-      const p = new Tone.Player().toDestination();
+      const p = new Tone.Player();
       const e = new Tone.EQ3(0, 0, 0); 
       const c = new Tone.Compressor(-30, 3);
       const w = new Tone.StereoWidener(0.5); 
       const cf = new Tone.CrossFade(0); 
       const a = new Tone.Analyser('fft', 256);
 
+      // FIX: Conexión correcta de CrossFade
+      // Cadena de efectos hasta widener
       p.disconnect();
-      p.chain(e, c, w, cf, Tone.Destination);
+      p.chain(e, c, w);
+      
+      // Conexión manual a la entrada A del Crossfade
+      w.connect(cf.a);
+      
+      // Salida del Crossfade a Destination
+      cf.toDestination();
+      
+      // Analyser conectado al widener
       w.connect(a);
 
       if (isMounted) {
@@ -49,7 +55,6 @@ export const useAudioEngine = () => {
         
         setIsReady(true);
       } else {
-        // Si se desmontó mientras cargaba, limpiar inmediatamente
         p.dispose();
         e.dispose();
         c.dispose();
@@ -63,7 +68,6 @@ export const useAudioEngine = () => {
     
     return () => {
       isMounted = false;
-      // Limpieza robusta al desmontar
       player.current?.dispose();
       eq.current?.dispose();
       compressor.current?.dispose();
@@ -71,7 +75,6 @@ export const useAudioEngine = () => {
       crossFade.current?.dispose();
       analyser.current?.dispose();
 
-      // Reset refs
       player.current = null;
       eq.current = null;
       compressor.current = null;
@@ -88,8 +91,6 @@ export const useAudioEngine = () => {
       }
   }, [volume, isReady]);
 
-
-
   // Ref de tiempo para sincronización
   const startTimeRef = useRef(0);
   const offsetRef = useRef(0);
@@ -99,30 +100,21 @@ export const useAudioEngine = () => {
 
      const loop = () => {
         if (isPlaying && player.current) {
-           // Tiempo actual = Tiempo transcurrido desde start + offset inicial
            const now = Tone.now();
            const elapsed = now - startTimeRef.current;
            const total = offsetRef.current + elapsed;
            
-           // Limitar a duración
            if (total <= duration) {
                setCurrentTime(total);
                animationFrameId = requestAnimationFrame(loop);
            } else {
                setCurrentTime(duration);
-               setIsPlaying(false); // Fin de canción
+               setIsPlaying(false);
            }
         }
      };
 
      if (isPlaying) {
-        // Al dar play, seteamos el punto de referencia
-        // PERO esto asume que acabamos de dar play. 
-        // Si ya veniamos tocando... el effect corre al cambiar isPlaying.
-        // Necesitamos capturar el Tone.now() ALMOMENTO de start().
-        // Lo haremos en togglePlayback/seek.
-        
-        // Solo iniciamos el loop de UI
         loop();
      } else {
         cancelAnimationFrame(animationFrameId);
@@ -131,8 +123,7 @@ export const useAudioEngine = () => {
      return () => cancelAnimationFrame(animationFrameId);
   }, [isPlaying, duration, setIsPlaying]);
 
-
-  // 3. Cargar Canción
+  // 3. Cargar Canción - RAM-based (sin IndexedDB)
   const loadTrack = useCallback(async (track) => {
     if (!player.current) return;
     
@@ -143,24 +134,28 @@ export const useAudioEngine = () => {
     
     await Tone.start(); 
 
+    // FIX: Usar el archivo directamente desde RAM (track.file)
     let url;
-    if (track.isLocal) {
-        const blob = await getAudioFile(track.id);
-        if (blob) url = URL.createObjectURL(blob);
-    } else {
+    if (track.file) {
+        // El track viene con el File object en memoria
+        url = URL.createObjectURL(track.file);
+    } else if (track.url) {
+        // Fallback para streams o URLs externas
         url = track.url;
+    } else {
+        console.error('No file or URL available for track:', track);
+        return;
     }
 
     if (url) {
         await player.current.load(url);
-        // await player.current.loaded; // load es async en nuevas versiones o retorna promise
         
         const dur = player.current.buffer.duration;
         setDuration(dur);
         setCurrentTime(0);
-        offsetRef.current = 0; // Reset offset on new track
+        offsetRef.current = 0;
         
-        startTimeRef.current = Tone.now(); // Mark start time
+        startTimeRef.current = Tone.now();
         player.current.start();
         setIsPlaying(true);
     }
@@ -211,7 +206,14 @@ export const useAudioEngine = () => {
 
   const setEqBand = (band, value) => { if (eq.current) eq.current[band].value = value; };
   const toggleCompressor = (active) => { if(compressor.current) compressor.current.threshold.value = active ? -30 : 0; };
-  const toggle3D = (active) => { if(widener.current) widener.current.width.value = active ? 0.8 : 0; };
+  const toggle3D = (active) => { 
+      if(widener.current) {
+          // Si está activo: 0.8 (Efecto 3D Amplio)
+          // Si está apagado: 0.5 (Estéreo Normal / Original)
+          // NUNCA pongas 0, porque eso es Mono.
+          widener.current.width.value = active ? 0.8 : 0.5; 
+      }
+  };
   const getAnalyser = () => analyser.current;
 
   return {
