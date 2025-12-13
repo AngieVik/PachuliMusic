@@ -14,58 +14,132 @@ export const useAudioEngine = () => {
 
   const [isReady, setIsReady] = useState(false);
   const [duration, setDuration] = useState(0); 
+  const [currentTime, setCurrentTime] = useState(0); // Nuevo estado para UI
   
   // Extraemos VOLUME e isPlaying para usarlos y devolverlos
   const { isPlaying, setIsPlaying, volume } = usePlayerStore();
 
-  // 1. Inicializar Grafo
+  // 1. Inicializar Grafo - Hardened for Strict Mode
   useEffect(() => {
+    // Flag para evitar doble inicialización en Strict Mode
+    let isMounted = true;
+
     const initAudio = async () => {
-      player.current = new Tone.Player().toDestination();
-      eq.current = new Tone.EQ3(0, 0, 0); 
-      compressor.current = new Tone.Compressor(-30, 3);
-      widener.current = new Tone.StereoWidener(0.5); 
-      crossFade.current = new Tone.CrossFade(0); 
-      analyser.current = new Tone.Analyser('fft', 256);
+      // Si ya existe una instancia (por hot reload o strict mode), limpiarla antes
+      if (player.current) return;
 
-      player.current.disconnect();
-      player.current.chain(
-        eq.current,
-        compressor.current,
-        widener.current,
-        crossFade.current,
-        Tone.Destination
-      );
-      widener.current.connect(analyser.current);
+      const p = new Tone.Player().toDestination();
+      const e = new Tone.EQ3(0, 0, 0); 
+      const c = new Tone.Compressor(-30, 3);
+      const w = new Tone.StereoWidener(0.5); 
+      const cf = new Tone.CrossFade(0); 
+      const a = new Tone.Analyser('fft', 256);
 
-      setIsReady(true);
+      p.disconnect();
+      p.chain(e, c, w, cf, Tone.Destination);
+      w.connect(a);
+
+      if (isMounted) {
+        player.current = p;
+        eq.current = e;
+        compressor.current = c;
+        widener.current = w;
+        crossFade.current = cf;
+        analyser.current = a;
+        
+        setIsReady(true);
+      } else {
+        // Si se desmontó mientras cargaba, limpiar inmediatamente
+        p.dispose();
+        e.dispose();
+        c.dispose();
+        w.dispose();
+        cf.dispose();
+        a.dispose();
+      }
     };
+
     initAudio();
     
     return () => {
-        player.current?.dispose();
-        eq.current?.dispose();
-        compressor.current?.dispose();
-        widener.current?.dispose();
-        crossFade.current?.dispose();
-        analyser.current?.dispose();
+      isMounted = false;
+      // Limpieza robusta al desmontar
+      player.current?.dispose();
+      eq.current?.dispose();
+      compressor.current?.dispose();
+      widener.current?.dispose();
+      crossFade.current?.dispose();
+      analyser.current?.dispose();
+
+      // Reset refs
+      player.current = null;
+      eq.current = null;
+      compressor.current = null;
+      widener.current = null;
+      crossFade.current = null;
+      analyser.current = null;
     };
   }, []);
 
   // 2. Efecto para controlar el VOLUMEN en tiempo real
   useEffect(() => {
       if (player.current) {
-          // Tone.js usa decibelios. Convertimos de 0-1 a dB.
-          // 0 = Mute (-Infinity dB), 1 = 0 dB (volumen total)
           player.current.volume.value = volume === 0 ? -Infinity : 20 * Math.log10(volume);
       }
-  }, [volume]);
+  }, [volume, isReady]);
+
+
+
+  // Ref de tiempo para sincronización
+  const startTimeRef = useRef(0);
+  const offsetRef = useRef(0);
+
+  useEffect(() => {
+     let animationFrameId;
+
+     const loop = () => {
+        if (isPlaying && player.current) {
+           // Tiempo actual = Tiempo transcurrido desde start + offset inicial
+           const now = Tone.now();
+           const elapsed = now - startTimeRef.current;
+           const total = offsetRef.current + elapsed;
+           
+           // Limitar a duración
+           if (total <= duration) {
+               setCurrentTime(total);
+               animationFrameId = requestAnimationFrame(loop);
+           } else {
+               setCurrentTime(duration);
+               setIsPlaying(false); // Fin de canción
+           }
+        }
+     };
+
+     if (isPlaying) {
+        // Al dar play, seteamos el punto de referencia
+        // PERO esto asume que acabamos de dar play. 
+        // Si ya veniamos tocando... el effect corre al cambiar isPlaying.
+        // Necesitamos capturar el Tone.now() ALMOMENTO de start().
+        // Lo haremos en togglePlayback/seek.
+        
+        // Solo iniciamos el loop de UI
+        loop();
+     } else {
+        cancelAnimationFrame(animationFrameId);
+     }
+
+     return () => cancelAnimationFrame(animationFrameId);
+  }, [isPlaying, duration, setIsPlaying]);
+
 
   // 3. Cargar Canción
   const loadTrack = useCallback(async (track) => {
     if (!player.current) return;
     
-    if(player.current.state === 'started') player.current.stop();
+    // Detener anterior
+    if (player.current.state === 'started') {
+        player.current.stop();
+    }
     
     await Tone.start(); 
 
@@ -79,7 +153,14 @@ export const useAudioEngine = () => {
 
     if (url) {
         await player.current.load(url);
-        setDuration(player.current.buffer.duration);
+        // await player.current.loaded; // load es async en nuevas versiones o retorna promise
+        
+        const dur = player.current.buffer.duration;
+        setDuration(dur);
+        setCurrentTime(0);
+        offsetRef.current = 0; // Reset offset on new track
+        
+        startTimeRef.current = Tone.now(); // Mark start time
         player.current.start();
         setIsPlaying(true);
     }
@@ -88,27 +169,44 @@ export const useAudioEngine = () => {
   // Controles
   const togglePlayback = () => {
     if (!player.current || !player.current.loaded) return;
+    
     if (player.current.state === 'started') {
+      // PAUSA
       player.current.stop(); 
+      
+      // Guardar donde nos quedamos
+      const now = Tone.now();
+      const elapsed = now - startTimeRef.current;
+      offsetRef.current += elapsed; // Acumular lo reproducido
+      
       setIsPlaying(false);
     } else {
-      player.current.start(undefined, player.current.toSeconds(Tone.now())); 
+      // PLAY
+      // Reanudar desde offset
+      // offsetRef.current tiene el punto donde pausamos
+      const now = Tone.now();
+      startTimeRef.current = now; // Nuevo punto de referencia temporal
+      
+      player.current.start(undefined, offsetRef.current); 
       setIsPlaying(true);
     }
   };
 
   const seek = (time) => {
     if (player.current && player.current.loaded) {
-      player.current.seek(time);
+      // Stop si está sonando para reiniciar desde nuevo punto
+      const wasPlaying = player.current.state === 'started';
+      if (wasPlaying) player.current.stop();
+      
+      offsetRef.current = time; // Nuevo punto base
+      setCurrentTime(time); // Actualizar UI inmediato
+      
+      if (wasPlaying || isPlaying) {
+          startTimeRef.current = Tone.now();
+          player.current.start(undefined, time);
+          if (!isPlaying) setIsPlaying(true);
+      }
     }
-  };
-
-  const getCurrentTime = () => {
-      if(player.current && player.current.loaded && player.current.state === 'started') {
-          // Aproximación segura para UI
-          return player.current.toSeconds(Tone.now()); 
-      } 
-      return 0;
   };
 
   const setEqBand = (band, value) => { if (eq.current) eq.current[band].value = value; };
@@ -119,6 +217,7 @@ export const useAudioEngine = () => {
   return {
     isReady,
     duration,
+    currentTime, // Estado reactivo real
     loadTrack,
     togglePlayback,
     seek,
@@ -126,7 +225,7 @@ export const useAudioEngine = () => {
     toggleCompressor,
     toggle3D,
     getAnalyser,
-    getCurrentTime, // ¡Añadido! Ahora sí se exporta
+    getCurrentTime: () => currentTime, // Helper legacy
     isPlaying,
     playerRef: player
   };

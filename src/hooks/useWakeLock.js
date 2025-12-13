@@ -16,7 +16,15 @@ export const useWakeLock = () => {
     };
 
     // Request wake lock on component mount
-    requestWakeLock();
+    const requestWakeLockSafe = async () => {
+      try {
+        await requestWakeLock();
+      } catch (e) {
+        console.warn('Wake Lock failed:', e);
+      }
+    };
+    
+    requestWakeLockSafe();
 
     // Re-request wake lock if visibility changes (e.g. user switches tabs and comes back)
     const handleVisibilityChange = () => {

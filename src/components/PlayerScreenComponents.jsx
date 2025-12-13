@@ -35,24 +35,57 @@ export const PlayerControls = ({
     </NeumorphicButton>
   </div>
 );
-export const PlaybackProgress = () => (
-  <div className="flex flex-col gap-2 px-6 pt-4 pb-2">
-    <div className="rounded-full bg-transparent p-1 shadow-neumorphic-inset-light dark:shadow-neumorphic-inset-dark">
-      <div
-        className="h-1.5 rounded-full bg-primary"
-        style={{ width: "40%" }}
-      ></div>
+import { useAudio } from "../hooks/useAudio";
+import { formatTime } from "../utils/metadata";
+
+// ... PlayerControls ...
+
+export const PlaybackProgress = () => {
+  const { currentTime, duration, seek } = useAudio();
+
+  const handleSeek = (e) => {
+    const time = parseFloat(e.target.value);
+    seek(time);
+  };
+
+  const progress = duration ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div className="flex flex-col gap-2 px-6 pt-4 pb-2">
+      <div className="relative w-full h-4 group flex items-center">
+        {/* Barra de Fondo */}
+        <div className="absolute w-full h-1.5 rounded-full bg-surface-variant-light/30 dark:bg-surface-variant-dark/30 overflow-hidden">
+          {/* Barra de Progreso */}
+          <div
+            className="h-full bg-primary transition-all duration-100 ease-linear"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+
+        {/* Input Range Invisible para interacción */}
+        <input
+          type="range"
+          min="0"
+          max={duration || 0}
+          value={currentTime || 0}
+          onChange={handleSeek}
+          className="absolute w-full h-full opacity-0 cursor-pointer z-10"
+        />
+
+        {/* Thumb visible solo en hover/active (opcional, por ahora solo barra) */}
+      </div>
+
+      <div className="flex justify-between select-none">
+        <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-xs font-medium">
+          {formatTime(currentTime)}
+        </p>
+        <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-xs font-medium">
+          {formatTime(duration)}
+        </p>
+      </div>
     </div>
-    <div className="flex justify-between">
-      <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-xs font-normal leading-normal">
-        1:25
-      </p>
-      <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-xs font-normal leading-normal">
-        3:32
-      </p>
-    </div>
-  </div>
-);
+  );
+};
 
 export const NowPlayingInfo = ({
   currentTrack,

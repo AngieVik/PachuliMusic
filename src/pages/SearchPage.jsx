@@ -75,28 +75,28 @@ const SearchPage = () => {
           Explorar
         </h2>
         <div className="flex flex-col gap-3">
-          {[
-            {
-              icon: "folder",
-              text: "Almacenamiento interno",
-              onClick: handleLocalStorageClick,
-            },
-            { icon: "cloud", text: "Google Drive", onClick: null },
-          ].map((item, i) => (
-            <button
-              key={i}
-              onClick={item.onClick}
-              disabled={!item.onClick}
-              className="flex items-center gap-4 rounded-xl px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <span className="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark text-2xl">
-                {item.icon}
-              </span>
-              <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
-                {item.text}
-              </p>
-            </button>
-          ))}
+          <button
+            onClick={handleLocalStorageClick}
+            className="flex items-center gap-4 rounded-xl px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-900/50 transition-colors"
+          >
+            <span className="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark text-2xl">
+              folder
+            </span>
+            <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
+              Almacenamiento interno
+            </p>
+          </button>
+          <button
+            disabled
+            className="flex items-center gap-4 rounded-xl px-2 py-1 opacity-50 cursor-not-allowed transition-colors"
+          >
+            <span className="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark text-2xl">
+              cloud
+            </span>
+            <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
+              Google Drive
+            </p>
+          </button>
         </div>
       </div>
 

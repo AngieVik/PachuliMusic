@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AudioProvider } from "./context/AudioContext";
 import "./App.css";
 import SearchPage from "./pages/SearchPage";
@@ -14,8 +14,8 @@ const App = () => {
   return (
     <AudioProvider>
       <Routes>
-        {/* Redirección o página principal */}
-        <Route path="/" element={<NowPlayingPage initialTab="cover" />} />
+        {/* Redirección automática */}
+        <Route path="/" element={<Navigate to="/player/cover" replace />} />
 
         {/* Rutas del Reproductor */}
         <Route
