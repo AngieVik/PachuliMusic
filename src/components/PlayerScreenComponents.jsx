@@ -17,14 +17,14 @@ export const PlayerControls = ({
       <span className="material-symbols-outlined text-4xl">skip_previous</span>
     </NeumorphicButton>
 
-    <button
+    <NeumorphicButton
       onClick={onPlayPause}
-      className="flex items-center justify-center rounded-full h-20 w-20 bg-primary text-black shadow-lg shadow-primary/40"
+      className="h-20 w-20 bg-primary text-black shadow-lg shadow-primary/40 active:shadow-primary/20"
     >
       <span className="material-symbols-outlined text-5xl filled">
         {isPlaying ? "pause" : "play_arrow"}
       </span>
-    </button>
+    </NeumorphicButton>
 
     <NeumorphicButton
       className="h-16 w-16"
