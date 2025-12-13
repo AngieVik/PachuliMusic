@@ -6,8 +6,9 @@ export const usePlayerStore = create(
   persist(
     (set, get) => ({
       // --- Estado Inicial ---
-      playlists: [], // { name: string, songs: [] }
-      favorites: [], // Array de IDs
+      playlists: [], // { id, name: string, songs: [] }
+      favorites: [], // Array de IDs de canciones
+      recentSearches: [], // { id, title, subtitle, img, rounded, type, timestamp }
       queue: [], // Lista de reproducción actual
       currentTrackIndex: -1,
       isPlaying: false,
@@ -32,6 +33,8 @@ export const usePlayerStore = create(
           set({ currentTrackIndex: currentTrackIndex - 1 });
         }
       },
+
+      playAtIndex: (index) => set({ currentTrackIndex: index, isPlaying: true }),
 
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
       
@@ -79,6 +82,61 @@ export const usePlayerStore = create(
         if (index < newIndex) newIndex--;
         
         set({ queue: newQueue, currentTrackIndex: newIndex });
+      },
+
+      // Recent Searches
+      addRecentSearch: (searchItem) => set((state) => {
+        // Evitar duplicados recientes
+        const filtered = state.recentSearches.filter(
+          item => item.title !== searchItem.title || item.type !== searchItem.type
+        );
+        return {
+          recentSearches: [
+            { ...searchItem, id: Date.now(), timestamp: Date.now() },
+            ...filtered
+          ].slice(0, 20) // Limitar a 20 búsquedas recientes
+        };
+      }),
+
+      removeRecentSearch: (searchId) => set((state) => ({
+        recentSearches: state.recentSearches.filter(item => item.id !== searchId)
+      })),
+
+      clearRecentSearches: () => set({ recentSearches: [] }),
+
+      // Borrar Playlist
+      deletePlaylist: (playlistId) => set((state) => ({
+        playlists: state.playlists.filter(pl => pl.id !== playlistId)
+      })),
+
+      // Helper: Obtener canciones favoritas con detalles
+      getFavoriteSongs: () => {
+        const state = get();
+        return state.queue.filter(song => state.favorites.includes(song.id));
+      },
+
+      // Helper: Obtener álbumes agrupados por artista
+      getAlbumsByArtist: () => {
+        const state = get();
+        const albumsMap = new Map();
+        
+        // Recorrer todas las playlists y sus canciones
+        state.playlists.forEach(playlist => {
+          playlist.songs.forEach(song => {
+            const key = `${song.artist}-${song.album}`;
+            if (!albumsMap.has(key)) {
+              albumsMap.set(key, {
+                title: song.album || 'Álbum Desconocido',
+                artist: song.artist || 'Artista Desconocido',
+                img: song.artwork,
+                songs: []
+              });
+            }
+            albumsMap.get(key).songs.push(song);
+          });
+        });
+
+        return Array.from(albumsMap.values());
       }
     }),
     {
@@ -86,6 +144,7 @@ export const usePlayerStore = create(
       partialize: (state) => ({ 
         playlists: state.playlists, 
         favorites: state.favorites,
+        recentSearches: state.recentSearches,
         volume: state.volume 
       }),
     }

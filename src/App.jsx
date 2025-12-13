@@ -7,7 +7,10 @@ import { LibraryFavoritesPage } from "./pages/LibraryPlaylistsPage";
 import { LibraryAlbumsPage } from "./pages/LibraryPlaylistsPage";
 import NowPlayingPage from "./pages/NowPlayingPage";
 
+import { useWakeLock } from "./hooks/useWakeLock";
+
 const App = () => {
+  useWakeLock();
   return (
     <AudioProvider>
       <Routes>

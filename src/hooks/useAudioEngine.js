@@ -15,8 +15,8 @@ export const useAudioEngine = () => {
   const [isReady, setIsReady] = useState(false);
   const [duration, setDuration] = useState(0); 
   
-  // Extraemos VOLUME para usarlo, y quitamos isPlaying que no usabamos aquí
-  const { setIsPlaying, volume } = usePlayerStore();
+  // Extraemos VOLUME e isPlaying para usarlos y devolverlos
+  const { isPlaying, setIsPlaying, volume } = usePlayerStore();
 
   // 1. Inicializar Grafo
   useEffect(() => {
@@ -127,6 +127,7 @@ export const useAudioEngine = () => {
     toggle3D,
     getAnalyser,
     getCurrentTime, // ¡Añadido! Ahora sí se exporta
+    isPlaying,
     playerRef: player
   };
 };

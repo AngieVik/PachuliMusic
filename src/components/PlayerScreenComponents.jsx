@@ -1,8 +1,19 @@
 import { NeumorphicButton } from "./UIBasicComponents";
 
-export const PlayerControls = ({ onPlayPause, isPlaying }) => (
+export const PlayerControls = ({
+  onPlayPause,
+  onNext,
+  onPrev,
+  isPlaying,
+  canGoNext,
+  canGoPrev,
+}) => (
   <div className="flex items-center justify-between gap-6 px-8 py-4">
-    <NeumorphicButton className="h-16 w-16">
+    <NeumorphicButton
+      className="h-16 w-16"
+      onClick={onPrev}
+      disabled={!canGoPrev}
+    >
       <span className="material-symbols-outlined text-4xl">skip_previous</span>
     </NeumorphicButton>
 
@@ -15,7 +26,11 @@ export const PlayerControls = ({ onPlayPause, isPlaying }) => (
       </span>
     </button>
 
-    <NeumorphicButton className="h-16 w-16">
+    <NeumorphicButton
+      className="h-16 w-16"
+      onClick={onNext}
+      disabled={!canGoNext}
+    >
       <span className="material-symbols-outlined text-4xl">skip_next</span>
     </NeumorphicButton>
   </div>
@@ -39,23 +54,55 @@ export const PlaybackProgress = () => (
   </div>
 );
 
-export const NowPlayingInfo = () => (
-  <div className="flex-shrink-0 px-6 pt-0 pb-2">
-    <div className="flex justify-between items-center">
-      <div className="flex-1 min-w-0">
-        <h1 className="text-on-surface-light dark:text-on-surface-dark tracking-tight text-2xl font-bold leading-tight truncate">
-          Luces de Neón
-        </h1>
-        <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-base font-normal leading-normal truncate pt-1">
-          Valeria Synth
-        </p>
+export const NowPlayingInfo = ({
+  currentTrack,
+  isFavorite,
+  onToggleFavorite,
+}) => {
+  if (!currentTrack) {
+    return (
+      <div className="flex-shrink-0 px-6 pt-0 pb-2">
+        <div className="flex justify-between items-center">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-on-surface-light dark:text-on-surface-dark tracking-tight text-2xl font-bold leading-tight truncate opacity-50">
+              Sin canción
+            </h1>
+            <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-base font-normal leading-normal truncate pt-1">
+              Selecciona una canción para reproducir
+            </p>
+          </div>
+        </div>
       </div>
-      <NeumorphicButton className="h-12 w-12 ml-4 flex-shrink-0 hover:text-primary">
-        <span className="material-symbols-outlined">favorite_border</span>
-      </NeumorphicButton>
+    );
+  }
+
+  return (
+    <div className="flex-shrink-0 px-6 pt-0 pb-2">
+      <div className="flex justify-between items-center">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-on-surface-light dark:text-on-surface-dark tracking-tight text-2xl font-bold leading-tight truncate">
+            {currentTrack.title}
+          </h1>
+          <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-base font-normal leading-normal truncate pt-1">
+            {currentTrack.artist}
+          </p>
+        </div>
+        <NeumorphicButton
+          className="h-12 w-12 ml-4 flex-shrink-0 hover:text-primary"
+          onClick={onToggleFavorite}
+        >
+          <span
+            className={`material-symbols-outlined ${
+              isFavorite ? "filled text-primary" : ""
+            }`}
+          >
+            favorite
+          </span>
+        </NeumorphicButton>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const TabButton = ({ icon, isActive, onClick }) => (
   <button
