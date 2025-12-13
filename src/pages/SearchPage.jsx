@@ -14,33 +14,38 @@ const SearchPage = () => {
     usePlayerStore();
 
   const handleFileSelect = async (event) => {
-    const files = Array.from(event.target.files);
+    try {
+      const files = Array.from(event.target.files);
 
-    if (files.length === 0) return;
+      if (files.length === 0) return;
 
-    const songs = [];
+      const songs = [];
 
-    for (const file of files) {
-      // Only process audio files
-      if (!file.type.startsWith("audio/")) continue;
+      for (const file of files) {
+        // Only process audio files
+        if (!file.type.startsWith("audio/")) continue;
 
-      const metadata = await extractMetadata(file);
+        const metadata = await extractMetadata(file);
 
-      // Save file to IndexedDB
-      await saveAudioFile(metadata.id, file);
+        // Save file to IndexedDB
+        await saveAudioFile(metadata.id, file);
 
-      songs.push(metadata);
+        songs.push(metadata);
+      }
+
+      if (songs.length > 0) {
+        // Set as new queue and start playing
+        setQueue(songs);
+        // Navigate to list view
+        navigate("/player/list");
+      }
+    } catch (error) {
+      console.error("Error selecting files:", error);
+      alert("Error al cargar los archivos. Por favor intenta de nuevo.");
+    } finally {
+      // Reset input
+      if (event.target) event.target.value = "";
     }
-
-    if (songs.length > 0) {
-      // Set as new queue and start playing
-      setQueue(songs);
-      // Navigate to list view
-      navigate("/player/list");
-    }
-
-    // Reset input
-    event.target.value = "";
   };
 
   const handleLocalStorageClick = () => {

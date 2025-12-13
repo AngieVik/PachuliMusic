@@ -1,5 +1,5 @@
 import { parseBlob } from 'music-metadata';
-import { Buffer } from 'buffer';
+
 
 // Utility to extract metadata from audio files
 export const extractMetadata = async (file) => {
@@ -13,12 +13,14 @@ export const extractMetadata = async (file) => {
     const album = common.album || "Álbum Desconocido";
     const duration = format.duration || 0;
 
-    // 2. Procesar Carátula (Artwork)
+    // 2. Procesar Carátula (Artwork) usando Web APIs (Blob/URL)
     let artwork = null;
     if (common.picture && common.picture.length > 0) {
       const picture = common.picture[0];
-      const base64String = Buffer.from(picture.data).toString('base64');
-      artwork = `data:${picture.format};base64,${base64String}`;
+      // Crear un Blob desde el Uint8Array
+      const blob = new Blob([picture.data], { type: picture.format });
+      // Crear una URL temporal de alto rendimiento
+      artwork = URL.createObjectURL(blob);
     }
 
     return {
@@ -26,7 +28,7 @@ export const extractMetadata = async (file) => {
       title,
       artist,
       album,
-      artwork, // URL base64 o null
+      artwork, 
       isLocal: true,
       duration,
       file: file
