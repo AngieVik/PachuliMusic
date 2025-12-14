@@ -8,7 +8,7 @@ export const PlayerControls = ({
   canGoNext,
   canGoPrev,
 }) => (
-  <div className=flex "items-center justify-between gap-6 px-8 py-4">
+  <div className="flex i0tems-center justify-between gap-6 px-8 py-4">
     <NeumorphicButton
       className="h-16 w-16"
       onClick={onPrev}
