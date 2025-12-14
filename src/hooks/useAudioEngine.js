@@ -167,6 +167,11 @@ export const useAudioEngine = () => {
         startTimeRef.current = Tone.now();
         player.current.start();
         setIsPlaying(true);
+        
+        // Track this play in history
+        const { trackPlay } = usePlayerStore.getState();
+        trackPlay(track);
+        
         console.log('▶️ Playback started, duration:', dur.toFixed(2), 's');
     }
   }, [setIsPlaying]);
@@ -181,8 +186,7 @@ export const useAudioEngine = () => {
       console.log('🔄 Track changed, auto-loading:', currentTrack.title);
       loadTrack(currentTrack);
     }
-  }, [currentTrackIndex, isReady, loadTrack]);
-  // Nota: NO incluimos 'queue' en deps para evitar re-loads innecesarios
+  }, [queue, currentTrackIndex, isReady, loadTrack]);
 
   // Controles
   const togglePlayback = () => {

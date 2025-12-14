@@ -72,33 +72,36 @@ const EqualizerView = () => {
             </div>
           </div>
         ))}
-        {/* --- CROSSFADE (Tu lógica visual) --- */}
+        {/* --- CROSSFADE --- */}
         <div className="flex flex-col pt-2 border-t border-gray-100 dark:border-gray-800">
-          {/* Usamos el ToggleSwitch arreglado */}
           <ToggleSwitch
             label="Crossfade"
             initialValue={crossfadeActive}
             onToggle={(val) => setCrossfadeActive(val)}
           />
 
-          {crossfadeActive && (
-            <div className="relative flex items-center mt-2 animate-fade-in">
-              <span className="text-xs text-on-surface-variant-light w-4">
-                1s
-              </span>
-              <input
-                className="w-full mx-2 accent-primary"
-                max="10"
-                min="1"
-                type="range"
-                value={crossfadeValue}
-                onChange={(e) => setCrossfadeValue(e.target.value)}
-              />
-              <span className="text-xs text-on-surface-variant-light w-6 text-right">
-                {crossfadeValue}s
-              </span>
-            </div>
-          )}
+          {/* Slider siempre visible, controlado por toggle */}
+          <div
+            className={`relative flex items-center mt-2 transition-opacity duration-300 ${
+              crossfadeActive ? "opacity-100" : "opacity-40"
+            }`}
+          >
+            <span className="text-xs text-on-surface-variant-light w-4">
+              1s
+            </span>
+            <input
+              className="w-full mx-2 accent-primary"
+              max="10"
+              min="1"
+              type="range"
+              value={crossfadeValue}
+              onChange={(e) => setCrossfadeValue(e.target.value)}
+              disabled={!crossfadeActive}
+            />
+            <span className="text-xs text-on-surface-variant-light w-6 text-right">
+              {crossfadeValue}s
+            </span>
+          </div>
         </div>
       </div>
 

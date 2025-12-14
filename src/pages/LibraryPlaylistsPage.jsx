@@ -128,8 +128,11 @@ const CreatePlaylistModal = ({ isOpen, onClose, onCreate }) => {
 
 export const LibraryPlaylistsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { playlists, createPlaylist, setQueue } = usePlayerStore();
+  const { playlists, createPlaylist, setQueue, getMostPlayed } =
+    usePlayerStore();
   const navigate = useNavigate();
+
+  const mostPlayed = getMostPlayed();
 
   const handleCreatePlaylist = (name) => {
     createPlaylist(name);
@@ -143,57 +146,88 @@ export const LibraryPlaylistsPage = () => {
     }
   };
 
+  const handleMostPlayedClick = () => {
+    if (mostPlayed.length > 0) {
+      setQueue(mostPlayed);
+      navigate("/player/list");
+    }
+  };
+
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+    <div className="min-h-screen w-full flex flex-col bg-background-light dark:bg-background-dark">
       <UniversalHeader title="Mi Biblioteca" />
-      <SearchBar placeholder="Buscar en playlists..." />
-      <LibraryTabs activeTab="playlists" />
 
-      <div className="flex-grow px-4 overflow-y-auto pb-20">
-        <div className="space-y-4">
-          <div
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-4 p-2 active:scale-95 transition-transform cursor-pointer"
-          >
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/20 text-primary shadow-neumorphic-sm-light dark:shadow-neumorphic-sm-dark">
-              <span className="material-symbols-outlined text-3xl">add</span>
-            </div>
-            <span className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
-              Crear nueva playlist
-            </span>
-          </div>
+      {/* Main content with padding for fixed header/footer */}
+      <main className="flex-1 pt-16 pb-20 overflow-y-auto w-full px-0">
+        <SearchBar placeholder="Buscar en playlists..." />
+        <LibraryTabs activeTab="playlists" />
 
-          {playlists.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <span className="material-symbols-outlined text-6xl text-text-secondary-light dark:text-text-secondary-dark opacity-30">
-                queue_music
-              </span>
-              <p className="mt-4 text-text-secondary-light dark:text-text-secondary-dark text-center">
-                No tienes playlists creadas
-              </p>
-            </div>
-          ) : (
-            playlists.map((playlist) => (
-              <div
-                key={playlist.id}
-                onClick={() => handlePlaylistClick(playlist)}
-              >
+        <div className="flex-grow px-4 overflow-y-auto pb-20">
+          <div className="space-y-4">
+            {/* Botón Crear Nueva Playlist */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="w-full flex items-center gap-4 p-4 rounded-xl bg-surface-light dark:bg-surface-dark shadow-neumorphic-light dark:shadow-neumorphic-dark hover:shadow-neumorphic-inset-light dark:hover:shadow-neumorphic-inset-dark transition-shadow"
+            >
+              <div className="w-16 h-16 rounded-lg bg-primary/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-4xl text-primary">
+                  add
+                </span>
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-on-surface-light dark:text-on-surface-dark font-semibold">
+                  Nueva Playlist
+                </p>
+                <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-sm">
+                  Crea una lista de reproducción personalizada
+                </p>
+              </div>
+            </button>
+
+            {/* Más Escuchadas - Playlist Dinámica */}
+            {mostPlayed.length > 0 && (
+              <div onClick={handleMostPlayedClick} className="cursor-pointer">
                 <ListItem
-                  title={playlist.name}
-                  subtitle={`${playlist.songs.length} canciones`}
-                  icon="queue_music"
+                  title="Más escuchadas"
+                  subtitle={`${mostPlayed.length} canciones`}
+                  icon="trending_up"
                 />
               </div>
-            ))
-          )}
-        </div>
-      </div>
+            )}
 
-      <CreatePlaylistModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onCreate={handleCreatePlaylist}
-      />
+            {/* Lista de Playlists del Usuario */}
+            {playlists.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <span className="material-symbols-outlined text-6xl text-text-secondary-light dark:text-text-secondary-dark opacity-30">
+                  queue_music
+                </span>
+                <p className="mt-4 text-text-secondary-light dark:text-text-secondary-dark text-center">
+                  No tienes playlists creadas
+                </p>
+              </div>
+            ) : (
+              playlists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  onClick={() => handlePlaylistClick(playlist)}
+                >
+                  <ListItem
+                    title={playlist.name}
+                    subtitle={`${playlist.songs.length} canciones`}
+                    icon="queue_music"
+                  />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <CreatePlaylistModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onCreate={handleCreatePlaylist}
+        />
+      </main>
 
       <BottomNavBar active="library" />
     </div>
@@ -205,52 +239,56 @@ export const LibraryFavoritesPage = () => {
   const favoriteSongs = getFavoriteSongs();
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+    <div className="min-h-screen w-full flex flex-col bg-background-light dark:bg-background-dark">
       <UniversalHeader title="Favoritos" />
-      <SearchBar placeholder="Buscar en favoritos..." />
-      <LibraryTabs activeTab="favorites" />
 
-      <div className="flex-grow px-4 overflow-y-auto pb-20">
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 shadow-neumorphic-light dark:shadow-neumorphic-dark flex items-center justify-center">
-              <span className="material-symbols-outlined text-4xl text-white filled">
-                favorite
-              </span>
+      <main className="flex-1 pt-16 pb-20 overflow-y-auto w-full px-0">
+        <SearchBar placeholder="Buscar en favoritos..." />
+        <LibraryTabs activeTab="favorites" />
+
+        <div className="flex-grow px-4 overflow-y-auto pb-20">
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 shadow-neumorphic-light dark:shadow-neumorphic-dark flex items-center justify-center">
+                <span className="material-symbols-outlined text-4xl text-white filled">
+                  favorite
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="text-on-surface-light dark:text-on-surface-dark font-semibold">
+                  Canciones que te gustan
+                </p>
+                <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-sm">
+                  {favorites.length} canciones
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-on-surface-light dark:text-on-surface-dark font-semibold">
-                Canciones que te gustan
-              </p>
-              <p className="text-on-surface-variant-light dark:text-on-surface-variant-dark text-sm">
-                {favorites.length} canciones
-              </p>
-            </div>
+
+            {favoriteSongs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <span className="material-symbols-outlined text-6xl text-text-secondary-light dark:text-text-secondary-dark opacity-30">
+                  favorite
+                </span>
+                <p className="mt-4 text-text-secondary-light dark:text-text-secondary-dark text-center">
+                  No tienes canciones favoritas aún
+                </p>
+              </div>
+            ) : (
+              favoriteSongs.map((song) => (
+                <ListItem
+                  key={song.id}
+                  img={song.artwork}
+                  title={song.title}
+                  subtitle={`${song.artist} • ${song.album}`}
+                  onHeartClick={() => toggleFavorite(song.id)}
+                  isFavorite={true}
+                />
+              ))
+            )}
           </div>
-
-          {favoriteSongs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <span className="material-symbols-outlined text-6xl text-text-secondary-light dark:text-text-secondary-dark opacity-30">
-                favorite
-              </span>
-              <p className="mt-4 text-text-secondary-light dark:text-text-secondary-dark text-center">
-                No tienes canciones favoritas aún
-              </p>
-            </div>
-          ) : (
-            favoriteSongs.map((song) => (
-              <ListItem
-                key={song.id}
-                img={song.artwork}
-                title={song.title}
-                subtitle={`${song.artist} • ${song.album}`}
-                onHeartClick={() => toggleFavorite(song.id)}
-                isFavorite={true}
-              />
-            ))
-          )}
         </div>
-      </div>
+      </main>
+
       <BottomNavBar active="library" />
     </div>
   );
@@ -261,34 +299,38 @@ export const LibraryAlbumsPage = () => {
   const albums = getAlbumsByArtist();
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+    <div className="min-h-screen w-full flex flex-col bg-background-light dark:bg-background-dark">
       <UniversalHeader title="Álbums" />
-      <SearchBar placeholder="Buscar álbums..." />
-      <LibraryTabs activeTab="albums" />
 
-      <div className="flex-grow px-4 overflow-y-auto pb-20">
-        <div className="space-y-4">
-          {albums.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <span className="material-symbols-outlined text-6xl text-text-secondary-light dark:text-text-secondary-dark opacity-30">
-                album
-              </span>
-              <p className="mt-4 text-text-secondary-light dark:text-text-secondary-dark text-center">
-                No hay álbums en tus playlists
-              </p>
-            </div>
-          ) : (
-            albums.map((album, i) => (
-              <ListItem
-                key={i}
-                img={album.img}
-                title={album.title}
-                subtitle={`${album.artist} • ${album.songs.length} canciones`}
-              />
-            ))
-          )}
+      <main className="flex-1 pt-16 pb-20 overflow-y-auto w-full px-0">
+        <SearchBar placeholder="Buscar álbums..." />
+        <LibraryTabs activeTab="albums" />
+
+        <div className="flex-grow px-4 overflow-y-auto pb-20">
+          <div className="space-y-4">
+            {albums.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <span className="material-symbols-outlined text-6xl text-text-secondary-light dark:text-text-secondary-dark opacity-30">
+                  album
+                </span>
+                <p className="mt-4 text-text-secondary-light dark:text-text-secondary-dark text-center">
+                  No hay álbums en tus playlists
+                </p>
+              </div>
+            ) : (
+              albums.map((album, i) => (
+                <ListItem
+                  key={i}
+                  img={album.img}
+                  title={album.title}
+                  subtitle={`${album.artist} • ${album.songs.length} canciones`}
+                />
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      </main>
+
       <BottomNavBar active="library" />
     </div>
   );

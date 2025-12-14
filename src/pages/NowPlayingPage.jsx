@@ -68,32 +68,39 @@ const NowPlayingPage = ({
   };
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col bg-background-light dark:bg-background-dark">
       <UniversalHeader title={headerTitle} />
-      <div className="flex w-full grow flex-col px-6 pt-4 pb-2">
-        <div className="flex flex-col flex-1">
-          <div className="w-full gap-1 overflow-hidden rounded-xl aspect-square flex shadow-neumorphic-light dark:shadow-neumorphic-dark">
-            {renderTabContent()}
+
+      {/* Main content with padding for fixed header/footer */}
+      <main className="flex-1 pt-16 pb-20 overflow-y-auto w-full px-0">
+        <div className="flex w-full h-full flex-col px-6 pt-4">
+          <div className="flex flex-col flex-1">
+            <div className="w-full gap-1 overflow-hidden rounded-xl aspect-square flex shadow-neumorphic-light dark:shadow-neumorphic-dark">
+              {renderTabContent()}
+            </div>
+            <PlayerScreenTabs
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
           </div>
-          <PlayerScreenTabs activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
-      </div>
 
-      <NowPlayingInfo
-        currentTrack={currentTrack}
-        isFavorite={isFavorite}
-        onToggleFavorite={handleToggleFavorite}
-      />
-      <PlaybackProgress />
+        <NowPlayingInfo
+          currentTrack={currentTrack}
+          isFavorite={isFavorite}
+          onToggleFavorite={handleToggleFavorite}
+        />
+        <PlaybackProgress />
 
-      <PlayerControls
-        onPlayPause={togglePlayback}
-        onNext={playNext}
-        onPrev={playPrev}
-        isPlaying={isPlaying}
-        canGoNext={canGoNext}
-        canGoPrev={canGoPrev}
-      />
+        <PlayerControls
+          onPlayPause={togglePlayback}
+          onNext={playNext}
+          onPrev={playPrev}
+          isPlaying={isPlaying}
+          canGoNext={canGoNext}
+          canGoPrev={canGoPrev}
+        />
+      </main>
 
       <BottomNavBar active="home" />
     </div>

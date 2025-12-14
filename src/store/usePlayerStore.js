@@ -35,6 +35,8 @@ export const usePlayerStore = create(
       playlists: [],
       favorites: [],
       recentSearches: [],
+      listeningHistory: [], // [{songId, title, artist, artwork, timestamp}]
+      playCount: {}, // {songId: count}
       queue: [],
       currentTrackIndex: -1,
       isPlaying: false,
@@ -61,6 +63,50 @@ export const usePlayerStore = create(
       },
 
       playAtIndex: (index) => set({ currentTrackIndex: index, isPlaying: true }),
+
+      // Track listening history
+      trackPlay: (song) => set((state) => {
+        if (!song || !song.id) return state;
+        
+        const newHistory = [
+          { 
+            songId: song.id, 
+            title: song.title, 
+            artist: song.artist,
+            artwork: song.artwork,
+            timestamp: Date.now() 
+          },
+          ...state.listeningHistory.filter(item => item.songId !== song.id)
+        ].slice(0, 50); // Keep last 50
+        
+        const newPlayCount = {
+          ...state.playCount,
+          [song.id]: (state.playCount[song.id] || 0) + 1
+        };
+        
+        return {
+          listeningHistory: newHistory,
+          playCount: newPlayCount
+        };
+      }),
+
+      // Get most played songs
+      getMostPlayed: () => {
+        const state = get();
+        const sortedEntries = Object.entries(state.playCount)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 20);
+        
+        // Map to full song objects from queue and playlists
+        const allSongs = [
+          ...state.queue,
+          ...state.playlists.flatMap(pl => pl.songs || [])
+        ];
+        
+        return sortedEntries
+          .map(([songId]) => allSongs.find(s => s.id === songId))
+          .filter(Boolean);
+      },
 
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
       
@@ -155,6 +201,8 @@ export const usePlayerStore = create(
         playlists: state.playlists, 
         favorites: state.favorites,
         recentSearches: state.recentSearches,
+        listeningHistory: state.listeningHistory,
+        playCount: state.playCount,
         volume: state.volume 
       }),
     }

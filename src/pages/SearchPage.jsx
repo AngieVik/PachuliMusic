@@ -9,8 +9,7 @@ import { extractMetadata } from "../utils/metadata";
 const SearchPage = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
-  const { recentSearches, removeRecentSearch, clearRecentSearches, setQueue } =
-    usePlayerStore();
+  const { listeningHistory, setQueue } = usePlayerStore();
 
   const handleFileSelect = async (event) => {
     try {
@@ -59,118 +58,100 @@ const SearchPage = () => {
     fileInputRef.current?.click();
   };
 
-  const handleRemoveSearch = (searchId) => {
-    removeRecentSearch(searchId);
-  };
-
-  const handleClearAll = () => {
-    clearRecentSearches();
-  };
-
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark font-display">
+    <div className="min-h-screen w-full flex flex-col bg-background-light dark:bg-background-dark">
       <UniversalHeader title="Búsqueda" />
-      <SearchBar placeholder="Canciones, artistas o álbumes" />
 
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="audio/*"
-        multiple
-        className="hidden"
-        onChange={handleFileSelect}
-      />
+      {/* Main content with padding for fixed header/footer */}
+      <main className="flex-1 pt-16 pb-20 overflow-y-auto w-full px-0">
+        <SearchBar placeholder="Canciones, artistas o álbumes" />
 
-      <div className="flex flex-col gap-4 px-4 pt-4">
-        <h2 className="px-2 text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
-          Explorar
-        </h2>
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={handleLocalStorageClick}
-            className="flex items-center gap-4 rounded-xl px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-900/50 transition-colors"
-          >
-            <span className="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark text-2xl">
-              folder
-            </span>
-            <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
-              Almacenamiento interno
-            </p>
-          </button>
-          <button
-            disabled
-            className="flex items-center gap-4 rounded-xl px-2 py-1 opacity-50 cursor-not-allowed transition-colors"
-          >
-            <span className="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark text-2xl">
-              cloud
-            </span>
-            <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
-              Google Drive
-            </p>
-          </button>
-        </div>
-      </div>
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
+        />
 
-      <div className="flex flex-col gap-3 px-4 pt-8 pb-4 flex-grow">
-        <div className="flex items-baseline justify-between px-2">
-          <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
-            Búsquedas recientes
+        <div className="flex flex-col gap-4 px-4 pt-4">
+          <h2 className="px-2 text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+            Explorar
           </h2>
-          {recentSearches.length > 0 && (
+          <div className="flex flex-col gap-3">
             <button
-              onClick={handleClearAll}
-              className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+              onClick={handleLocalStorageClick}
+              className="flex items-center gap-4 rounded-xl px-2 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-900/50 transition-colors"
             >
-              Borrar
+              <span className="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark text-2xl">
+                folder
+              </span>
+              <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
+                Almacenamiento interno
+              </p>
             </button>
+            <button
+              disabled
+              className="flex items-center gap-4 rounded-xl px-2 py-1 opacity-50 cursor-not-allowed transition-colors"
+            >
+              <span className="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark text-2xl">
+                cloud
+              </span>
+              <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
+                Google Drive
+              </p>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 px-4 pt-8 pb-4 flex-grow">
+          <div className="flex items-baseline justify-between px-2">
+            <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+              Últimas escuchadas
+            </h2>
+          </div>
+
+          {listeningHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+              <span className="material-symbols-outlined text-6xl text-text-secondary-light dark:text-text-secondary-dark opacity-30">
+                history
+              </span>
+              <p className="mt-4 text-text-secondary-light dark:text-text-secondary-dark text-center">
+                No hay canciones recientes
+              </p>
+            </div>
+          ) : (
+            <ul className="flex flex-col">
+              {listeningHistory.map((item) => (
+                <li
+                  key={item.timestamp}
+                  className="flex items-center gap-4 rounded-lg p-2 hover:bg-neutral-100 dark:hover:bg-neutral-900/50"
+                >
+                  <img
+                    alt={item.title}
+                    className="h-12 w-12 object-cover rounded-lg"
+                    src={item.artwork || "https://via.placeholder.com/48"}
+                  />
+                  <div className="flex flex-1 flex-col truncate">
+                    <p className="truncate font-semibold text-text-primary-light dark:text-text-primary-dark">
+                      {item.title}
+                    </p>
+                    <p className="truncate text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                      {item.artist}
+                    </p>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant-light dark:text-on-surface-variant-dark">
+                    history
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
+      </main>
 
-        {recentSearches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4">
-            <span className="material-symbols-outlined text-6xl text-text-secondary-light dark:text-text-secondary-dark opacity-30">
-              search
-            </span>
-            <p className="mt-4 text-text-secondary-light dark:text-text-secondary-dark text-center">
-              No hay búsquedas recientes
-            </p>
-          </div>
-        ) : (
-          <ul className="flex flex-col">
-            {recentSearches.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-4 rounded-lg p-2 hover:bg-neutral-100 dark:hover:bg-neutral-900/50"
-              >
-                <img
-                  alt={item.title}
-                  className={`h-12 w-12 object-cover ${
-                    item.rounded ? "rounded-full" : "rounded-lg"
-                  }`}
-                  src={item.img}
-                />
-                <div className="flex flex-1 flex-col truncate">
-                  <p className="truncate font-semibold text-text-primary-light dark:text-text-primary-dark">
-                    {item.title}
-                  </p>
-                  <p className="truncate text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                    {item.subtitle}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleRemoveSearch(item.id)}
-                  className="flex size-10 items-center justify-center rounded-full bg-card-light text-text-secondary-light shadow-sm dark:bg-card-dark dark:text-text-secondary-dark hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-xl">
-                    close
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
       <BottomNavBar active="search" />
     </div>
   );
